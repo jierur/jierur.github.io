@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>五关挑战-完整版</title>
+    <style>
+        :root {
+            --level1: #88C7B3; --level2: #FFB7C5; 
+            --level3: #FFD700; --level4: #A78BFA; 
+            --level5: #FF6B6B;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #f0f8ff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .game-container {
+            display: flex;
+            gap: 30px;
+            margin: 20px 0;
+            padding: 20px;
+            border-radius: 15px;
+            background: white;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .column {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            min-width: 180px;
+        }
+
+        .word-card {
+            padding: 12px 25px;
+            border: 2px solid;
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .matched {
+            animation: disappear 0.5s forwards;
+        }
+
+        @keyframes disappear {
+            0% { opacity: 1; transform: scale(1); }
+            100% { opacity: 0; height: 0; padding: 0; margin: 0; }
+        }
+
+        #victory {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 4em;
+            color: #FF6B6B;
+            text-shadow: 0 0 20px rgba(255,107,107,0.3);
+            display: none;
+            z-index: 1000;
+        }
+
+        button {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 25px;
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+            cursor: pointer;
+            font-size: 16px;
+            transition: 0.3s;
+            margin-top: 20px;
+        }
+
+        button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 15px rgba(76,175,80,0.3);
+        }
+
+        .level-info {
+            font-size: 24px;
+            color: #2c3e50;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="level-info" id="levelTitle">第1关 - 基础词汇 🌱</div>
+    <div class="level-info" id="progress">进度：0/7</div>
+    <div class="game-container">
+        <div class="column" id="left-column"></div>
+        <div class="column" id="right-column"></div>
+    </div>
+    <button onclick="nextLevel()" id="nextBtn" style="display:none;">下一关 ➡️</button>
+    <div id="victory">🏆 终极通关！</div>
+
+    <script>
+        // 完整37个词语数据
+        const allWords = [
+            { zh: '争论', sk: 'debatovať' }, { zh: '奇迹', sk: 'zázrak' },
+            { zh: '围绕', sk: 'obiehať okolo' }, { zh: '奔跑', sk: 'bežať' },
+            { zh: '蹄子', sk: 'kopyto' }, { zh: '辩论', sk: 'debatovať' },
+            { zh: '青蛙', sk: 'žaba' }, { zh: '啦', sk: 'častica' },
+            { zh: '始终', sk: 'od začiatku do konca' }, { zh: '脖子', sk: 'krk' },
+            { zh: '说服', sk: 'presvedčiť' }, { zh: '摄影师', sk: 'fotograf' },
+            { zh: '毕竟', sk: 'koniec-koncov' }, { zh: '操场', sk: 'ihrisko' },
+            { zh: '洞', sk: 'diera' }, { zh: '插', sk: 'vložiť' },
+            { zh: '棍', sk: 'palica' }, { zh: '系', sk: 'priviazať' },
+            { zh: '匹', sk: 'numeratív pre kone' }, { zh: '拦', sk: 'zastaviť' },
+            { zh: '拍', sk: 'fotiť' }, { zh: '差距', sk: 'rozdiel' },
+            { zh: '显示', sk: 'ukázať' }, { zh: '意识', sk: 'vedomie' },
+            { zh: '艰苦', sk: 'náročný' }, { zh: '试验', sk: 'pokus' },
+            { zh: '逐渐', sk: 'postupne' }, { zh: '改进', sk: 'zlepšiť' },
+            { zh: '成熟', sk: 'zrelý' }, { zh: '兄弟', sk: 'brat' },
+            { zh: '播放', sk: 'prehrávať' }, { zh: '纪念', sk: 'pamätný' },
+            { zh: '导演', sk: 'režisér' }, { zh: '瞬间', sk: 'okamih' },
+            { zh: '请求', sk: 'požiadať' }, { zh: '或许', sk: 'možno' },
+            { zh: '重大', sk: 'dôležitý' }
+        ];
+
+        // 五关配置 [起始索引, 结束索引, 需要配对数量]
+        const levels = [
+            { start: 0, end: 8, required: 7 },   // 第1关 (8词)
+            { start: 8, end: 15, required: 6 },  // 第2关 (7词)
+            { start: 15, end: 23, required: 7 }, // 第3关 (8词)
+            { start: 23, end: 31, required: 7 }, // 第4关 (8词)
+            { start: 31, end: 37, required: 6 }  // 第5关 (6词)
+        ];
+
+        let currentLevel = 0;
+        let matchedCount = 0;
+        let selectedCard = null;
+
+        // 初始化游戏
+        function initGame() {
+            const level = levels[currentLevel];
+            const words = allWords.slice(level.start, level.end);
+            
+            // 清空旧卡片
+            document.getElementById('left-column').innerHTML = '';
+            document.getElementById('right-column').innerHTML = '';
+
+            // 生成中文列
+            shuffleArray(words).forEach(word => {
+                createCard(word.zh, 'left', word.sk);
+            });
+
+            // 生成斯语列
+            shuffleArray(words).forEach(word => {
+                createCard(word.sk, 'right', word.zh);
+            });
+
+            // 更新界面
+            updateUI();
+        }
+
+        // 创建卡片
+        function createCard(text, side, match) {
+            const card = document.createElement('div');
+            card.className = 'word-card';
+            card.textContent = text;
+            card.dataset.match = match;
+            card.style.borderColor = getLevelColor();
+            card.onclick = () => handleClick(card, side);
+            document.getElementById(`${side}-column`).appendChild(card);
+        }
+
+        // 点击处理
+        function handleClick(card, side) {
+            if (card.classList.contains('matched')) return;
+
+            if (side === 'left') {
+                if (selectedCard) selectedCard.element.style.background = "white";
+                selectedCard = { match: card.dataset.match, element: card };
+                card.style.background = "#e3f2fd";
+            } else {
+                if (selectedCard && card.dataset.match === selectedCard.element.textContent) {
+                    // 标记匹配
+                    selectedCard.element.classList.add('matched');
+                    card.classList.add('matched');
+                    matchedCount++;
+                    
+                    // 更新进度
+                    updateUI();
+
+                    // 检查过关条件
+                    if (matchedCount >= levels[currentLevel].required) {
+                        document.getElementById('nextBtn').style.display = 'block';
+                    }
+                } else {
+                    // 错误反馈
+                    card.style.background = "#ffebee";
+                    setTimeout(() => card.style.background = "white", 500);
+                }
+                
+                if (selectedCard) selectedCard.element.style.background = "white";
+                selectedCard = null;
+            }
+        }
+
+        // 下一关
+        function nextLevel() {
+            if (currentLevel < levels.length - 1) {
+                currentLevel++;
+                matchedCount = 0;
+                document.getElementById('nextBtn').style.display = 'none';
+                initGame();
+            } else {
+                document.getElementById('victory').style.display = 'block';
+                document.getElementById('nextBtn').style.display = 'none';
+            }
+        }
+
+        // 辅助函数
+        function updateUI() {
+            document.getElementById('levelTitle').textContent = `第${currentLevel+1}关 - ${getLevelName()} ${getLevelEmoji()}`;
+            document.getElementById('progress').textContent = `进度：${matchedCount}/${levels[currentLevel].required}`;
+        }
+
+        function getLevelColor() {
+            return ['var(--level1)', 'var(--level2)', 'var(--level3)', 'var(--level4)', 'var(--level5)'][currentLevel];
+        }
+
+        function getLevelName() {
+            return ['基础词汇', '日常用语', '进阶词汇', '专业术语', '最终挑战'][currentLevel];
+        }
+
+        function getLevelEmoji() {
+            return ['🌱', '📚', '🚀', '💡', '🏆'][currentLevel];
+        }
+
+        function shuffleArray(array) {
+            return array.sort(() => Math.random() - 0.5);
+        }
+
+        // 启动游戏
+        initGame();
+    </script>
+</body>
+</html>
