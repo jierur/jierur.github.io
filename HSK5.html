@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>终极版六关汉语搭配王</title>
+    <style>
+        :root {
+            --level1: #FF6B6B; --level2: #4CAF50; --level3: #2196F3;
+            --level4: #9C27B0; --level5: #FF9800; --level6: #795548;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .header {
+            text-align: center;
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        .game-area {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            min-height: 500px;
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+        }
+        .word-card {
+            padding: 15px;
+            margin: 10px;
+            cursor: pointer;
+            border-radius: 6px;
+            background: #fff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: 0.3s;
+        }
+        .selected {
+            transform: scale(0.95);
+            box-shadow: 0 0 8px rgba(66, 133, 244, 0.5) !important;
+        }
+        .correct {
+            opacity: 0;
+            transition: all 0.5s;
+        }
+        #nextBtn {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            padding: 15px 30px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            display: none;
+            font-size: 18px;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>终极版汉语搭配闯关 🚀</h1>
+        <div>当前得分：<span id="score">0</span></div>
+        <div>当前关卡：<span id="currentLevel">第1关</span></div>
+    </div>
+    <div class="game-area" id="gameArea"></div>
+    <button id="nextBtn" onclick="nextLevel()">下一关 →</button>
+
+    <script>
+        //===== 游戏数据 =====//
+        const levels = [
+            { // 第1关
+                name: "动词+名词",
+                color: "#FF6B6B",
+                pairs: [
+                    ['保护', '环境'], ['降低', '成本'],
+                    ['提供', '机会'], ['遵守', '法律'],
+                    ['解决', '问题'], ['承担', '责任']
+                ]
+            },
+            { // 第2关
+                name: "形容词+名词",
+                color: "#4CAF50",
+                pairs: [
+                    ['重要', '资源'], ['复杂', '关系'],
+                    ['安全', '措施'], ['严格', '标准'],
+                    ['公平', '竞争'], ['有效', '方法']
+                ]
+            },
+            { // 第3关
+                name: "副词搭配",
+                color: "#2196F3",
+                pairs: [
+                    ['格外', '小心'], ['完全', '同意'],
+                    ['十分', '满意'], ['迅速', '反应'],
+                    ['充分', '准备'], ['普遍', '存在']
+                ]
+            },
+            { // 第4关
+                name: "固定搭配",
+                color: "#9C27B0",
+                pairs: [
+                    ['采取', '措施'], ['实现', '梦想'],
+                    ['面临', '困难'], ['取得', '进步'],
+                    ['发表', '意见'], ['建立', '信任']
+                ]
+            },
+            { // 第5关
+                name: "名词+动词",
+                color: "#FF9800",
+                pairs: [
+                    ['会议', '推迟'], ['价格', '上升'],
+                    ['需求', '增加'], ['意见', '分歧']
+                ]
+            },
+            { // 第6关
+                name: "社会短语",
+                color: "#795548",
+                pairs: [
+                    ['经济', '发展'], ['文化', '差异'],
+                    ['教育', '改革'], ['环境', '保护'],
+                    ['科技', '进步']
+                ]
+            }
+        ];
+
+        //===== 游戏状态 =====//
+        let currentLevel = 0;
+        let score = 0;
+
+        //===== 初始化游戏 =====//
+        function initGame() {
+            console.log(`正在初始化第 ${currentLevel + 1} 关`);
+            
+            // 重置下一关按钮
+            document.getElementById('nextBtn').style.display = 'none';
+            
+            // 更新界面显示
+            document.getElementById('currentLevel').textContent = 
+                `第${currentLevel + 1}关：${levels[currentLevel].name}`;
+            
+            // 生成游戏内容
+            const level = levels[currentLevel];
+            const leftWords = shuffle([...level.pairs.map(p => p[0])]);
+            const rightWords = shuffle([...level.pairs.map(p => p[1])]);
+            
+            document.getElementById('gameArea').innerHTML = `
+                <div class="left-col">
+                    ${leftWords.map(w => `
+                        <div class="word-card" 
+                             style="border-left: 4px solid ${level.color}"
+                             onclick="selectWord(this, 'left')">${w}</div>
+                    `).join('')}
+                </div>
+                <div class="right-col">
+                    ${rightWords.map(w => `
+                        <div class="word-card"
+                             style="border-right: 4px solid ${level.color}"
+                             onclick="selectWord(this, 'right')">${w}</div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        //===== 选择词语 =====//
+        function selectWord(card, side) {
+            console.log(`选中了 ${side} 栏的：${card.textContent}`);
+            
+            // 清除同栏已选项
+            document.querySelectorAll(`.${side}-col .word-card`).forEach(c => {
+                c.classList.remove('selected');
+            });
+            card.classList.add('selected');
+            
+            checkPair();
+        }
+
+        //===== 验证配对 =====//
+        function checkPair() {
+            const left = document.querySelector('.left-col .selected');
+            const right = document.querySelector('.right-col .selected');
+            
+            if (left && right) {
+                console.log(`尝试配对：${left.textContent} + ${right.textContent}`);
+                
+                const isValid = levels[currentLevel].pairs.some(p => 
+                    p[0] === left.textContent && p[1] === right.textContent
+                );
+
+                if (isValid) {
+                    console.log('配对成功！');
+                    left.classList.add('correct');
+                    right.classList.add('correct');
+                    score += 100;
+                    document.getElementById('score').textContent = score;
+                    
+                    // 移除已配对卡片
+                    setTimeout(() => {
+                        left.remove();
+                        right.remove();
+                        checkComplete();
+                    }, 500);
+                } else {
+                    console.log('配对失败！');
+                    left.style.background = '#FFEBEE';
+                    right.style.background = '#FFEBEE';
+                    setTimeout(() => {
+                        left.style.background = '';
+                        right.style.background = '';
+                    }, 500);
+                }
+                
+                // 清除选择状态
+                left.classList.remove('selected');
+                right.classList.remove('selected');
+            }
+        }
+
+        //===== 检查完成状态 =====//
+        function checkComplete() {
+            const remaining = document.querySelectorAll('.word-card').length;
+            console.log(`剩余卡片数：${remaining}`);
+            
+            if (remaining === 0) {
+                if (currentLevel < levels.length - 1) {
+                    console.log('本关完成，显示下一关按钮');
+                    document.getElementById('nextBtn').style.display = 'block';
+                } else {
+                    alert(`🎉 恭喜通关！最终得分：${score}`);
+                }
+            }
+        }
+
+        //===== 下一关功能 =====//
+        function nextLevel() {
+            console.log('进入下一关');
+            currentLevel++;
+            initGame();
+        }
+
+        //===== 洗牌函数 =====//
+        function shuffle(arr) {
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr;
+        }
+
+        //===== 启动游戏 =====//
+        initGame();
+    </script>
+</body>
+</html>
