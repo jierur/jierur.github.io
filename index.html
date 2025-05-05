@@ -1,144 +1,243 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>纤绸线一一对</title>
-  <style>
-    body {
-      font-family: sans-serif;
-      text-align: center;
-      background: #f0f8ff;
-    }
-    h1 {
-      color: #333;
-    }
-    #game {
-      display: grid;
-      grid-template-columns: repeat(6, 1fr);
-      grid-gap: 10px;
-      max-width: 800px;
-      margin: 20px auto;
-    }
-    .card {
-      background: #fff;
-      border: 2px solid #ccc;
-      border-radius: 10px;
-      padding: 15px;
-      cursor: pointer;
-      transition: 0.2s;
-    }
-    .card:hover {
-      background: #e0f7ff;
-    }
-    .matched {
-      background: #c8e6c9;
-      border-color: #2e7d32;
-      pointer-events: none;
-    }
-    #message {
-      font-size: 1.5em;
-      color: #2e7d32;
-      margin-top: 20px;
-    }
-    button {
-      padding: 10px 20px;
-      font-size: 1em;
-      border: none;
-      border-radius: 5px;
-      background-color: #007acc;
-      color: white;
-      cursor: pointer;
-      margin-top: 20px;
-    }
-    button:hover {
-      background-color: #005fa3;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <title>中英文穿管配对游戏</title>
+    <style>
+        body {
+            font-family: sans-serif;
+        }
+        .container {
+            display: flex;
+            justify-content: center;
+            position: relative;
+            max-width: 1000px;
+            margin: 0 auto;
+            gap: 20px;
+        }
+        .column {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            width: 40%;
+            min-width: 200px;
+        }
+        .card {
+            background: #2196F3;
+            color: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            user-select: none;
+            transition: all 0.3s;
+        }
+        .card.en {
+            background: #FF9800;
+        }
+        .card.selected {
+            outline: 3px solid #4CAF50;
+            transform: scale(1.05);
+        }
+        .card.matched {
+            opacity: 0;
+            pointer-events: none;
+        }
+        #lineCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+            z-index: 0;
+        }
+        .level {
+            text-align: center;
+            font-size: 24px;
+            margin: 20px 0;
+        }
+    </style>
 </head>
 <body>
-  <h1>纤绸线一一对</h1>
-  <div id="game"></div>
-  <div id="message"></div>
-  <button onclick="startGame()">重新开始</button>
+    <div class="level">当前关卡：<span id="currentLevel">1</span></div>
+    <div class="container" id="gameContainer">
+        <div class="column" id="chColumn"></div>
+        <canvas id="lineCanvas"></canvas>
+        <div class="column" id="enColumn"></div>
+    </div>
 
-  <script>
-    const wordPairs = [
-      ["apple", "苹果"], ["book", "书"], ["cat", "猫"],
-      ["dog", "狗"], ["water", "水"], ["sun", "太阳"],
-      ["moon", "月亮"], ["star", "星星"], ["pen", "笔"],
-      ["school", "学校"], ["teacher", "老师"], ["student", "学生"],
-      ["friend", "朋友"], ["family", "家人"], ["food", "食物"],
-      ["music", "音乐"], ["movie", "电影"], ["car", "汽车"],
-      ["phone", "手机"], ["computer", "电脑"], ["table", "桌子"],
-      ["chair", "椅子"], ["bed", "床"], ["window", "窗户"],
-      ["door", "门"], ["tree", "树"], ["flower", "花"],
-      ["bird", "鸟"], ["fish", "鱼"], ["egg", "蛋"],
-      ["milk", "牛奶"], ["rice", "大米"], ["noodle", "面条"],
-      ["train", "火车"], ["bus", "公交车"], ["plane", "飞机"],
-      ["run", "跑"], ["jump", "跳"], ["write", "写"]
-    ];
+    <script>
+        const words = [
+            {ch: '纸上谈兵', en: 'to be an armchair strategist'},
+            {ch: '军事', en: 'military affairs'},
+            {ch: '敌人', en: 'enemy'},
+            {ch: '理论', en: 'theory'},
+            {ch: '作战', en: 'to fight a battle'},
+            {ch: '毛病', en: 'shortcoming, weakness'},
+            {ch: '道理', en: 'principle, theory'},
+            {ch: '迟早', en: 'sooner or later'},
+            {ch: '军队', en: 'army'},
+            {ch: '派', en: 'to send, to assign'},
+            {ch: '弱', en: 'weak'},
+            {ch: '形势', en: 'situation, state of affairs'},
+            {ch: '命令', en: 'to command; order'},
+            {ch: '守', en: 'to guard, to defend'},
+            {ch: '阵地', en: 'position, front'},
+            {ch: '绝对', en: 'absolute; absolutely'},
+            {ch: '主动', en: 'on one\'s own initiative'},
+            {ch: '挑战', en: 'to challenge; challenge'},
+            {ch: '骂', en: 'to curse, to call names'},
+            {ch: '胆小鬼', en: 'coward'},
+            {ch: '胜利', en: 'to win a victory'},
+            {ch: '调动', en: 'to transfer, to shift'},
+            {ch: '散布', en: 'to spread, to disseminate'},
+            {ch: '谣言', en: 'rumor'},
+            {ch: '上当', en: 'to be taken in, to be deceived'},
+            {ch: '再三', en: 'again and again'},
+            {ch: '阻止', en: 'to stop, to prevent'},
+            {ch: '任命', en: 'to appoint'},
+            {ch: '独立', en: 'to be on one\'s own'},
+            {ch: '资格', en: 'qualification'},
+            {ch: '糊涂', en: 'muddleheaded'},
+            {ch: '公元', en: 'Christian era'},
+            {ch: '盲目', en: 'blind, ignorant'},
+            {ch: '轻视', en: 'to look down upon'},
+            {ch: '方案', en: 'plan, scheme'},
+            {ch: '进攻', en: 'to attack, to assault'},
+            {ch: '宝贵', en: 'precious, valuable'},
+            {ch: '讽刺', en: 'to satirize'},
+            {ch: '灵活', en: 'flexible, elastic'}
+        ];
 
-    let shuffledCards = [];
-    let firstCard = null;
-    let matchedCount = 0;
+        const LEVEL_SIZE = 5;
+        let currentLevel = 0;
+        let selectedCh = null;
+        let selectedEn = null;
+        let matches = 0;
 
-    function startGame() {
-      const game = document.getElementById('game');
-      const message = document.getElementById('message');
-      game.innerHTML = '';
-      message.textContent = '';
-      matchedCount = 0;
+        function initGame() {
+            const start = currentLevel * LEVEL_SIZE;
+            const end = Math.min(start + LEVEL_SIZE, words.length);
+            const levelWords = words.slice(start, end);
 
-      const selectedPairs = wordPairs.sort(() => 0.5 - Math.random()).slice(0, 12);
-      const cards = selectedPairs.flat().sort(() => 0.5 - Math.random());
+            const chCards = levelWords.map(pair => ({
+                text: pair.ch,
+                match: pair.en
+            })).sort(() => Math.random() - 0.5);
 
-      cards.forEach((word, index) => {
-        const div = document.createElement('div');
-        div.className = 'card';
-        div.textContent = word;
-        div.dataset.word = word;
-        div.dataset.index = index;
-        div.onclick = () => selectCard(div);
-        game.appendChild(div);
-      });
+            const enCards = levelWords.map(pair => ({
+                text: pair.en,
+                match: pair.ch
+            })).sort(() => Math.random() - 0.5);
 
-      shuffledCards = cards;
-      firstCard = null;
-    }
-
-    function selectCard(card) {
-      if (card.classList.contains('matched') || card === firstCard) return;
-
-      card.style.background = '#b3e5fc';
-
-      if (!firstCard) {
-        firstCard = card;
-        return;
-      }
-
-      const firstWord = firstCard.dataset.word;
-      const secondWord = card.dataset.word;
-      const isMatch = wordPairs.some(pair => pair.includes(firstWord) && pair.includes(secondWord) && firstWord !== secondWord);
-
-      if (isMatch) {
-        firstCard.classList.add('matched');
-        card.classList.add('matched');
-        matchedCount++;
-        if (matchedCount === 12) {
-          document.getElementById('message').textContent = '恭喜通关！';
+            renderCards(chCards, enCards);
+            matches = 0;
         }
-      } else {
-        setTimeout(() => {
-          firstCard.style.background = '';
-          card.style.background = '';
-        }, 600);
-      }
 
-      firstCard = null;
-    }
+        function renderCards(chCards, enCards) {
+            const chColumn = document.getElementById('chColumn');
+            const enColumn = document.getElementById('enColumn');
+            const canvas = document.getElementById('lineCanvas');
+            const container = document.getElementById('gameContainer');
 
-    startGame();
-  </script>
+            canvas.width = container.offsetWidth;
+            canvas.height = container.offsetHeight;
+
+            chColumn.innerHTML = chCards.map(card =>
+                `<div class="card ch" data-match="${card.match}">${card.text}</div>`
+            ).join('');
+            enColumn.innerHTML = enCards.map(card =>
+                `<div class="card en" data-match="${card.match}">${card.text}</div>`
+            ).join('');
+
+            document.querySelectorAll('.card.ch').forEach(card => {
+                card.addEventListener('click', handleChClick);
+            });
+            document.querySelectorAll('.card.en').forEach(card => {
+                card.addEventListener('click', handleEnClick);
+            });
+        }
+
+        function handleChClick(e) {
+            const card = e.target;
+            if (card.classList.contains('matched')) return;
+
+            document.querySelectorAll('.card.ch').forEach(c => c.classList.remove('selected'));
+            card.classList.add('selected');
+            selectedCh = card;
+            checkMatch();
+        }
+
+        function handleEnClick(e) {
+            const card = e.target;
+            if (card.classList.contains('matched')) return;
+
+            document.querySelectorAll('.card.en').forEach(c => c.classList.remove('selected'));
+            card.classList.add('selected');
+            selectedEn = card;
+            checkMatch();
+        }
+
+        function checkMatch() {
+            if (!selectedCh || !selectedEn) return;
+
+            if (
+                selectedCh.dataset.match === selectedEn.textContent &&
+                selectedEn.dataset.match === selectedCh.textContent
+            ) {
+                drawLine(selectedCh, selectedEn);
+                selectedCh.classList.add('matched');
+                selectedEn.classList.add('matched');
+                matches++;
+                checkLevelComplete();
+            } else {
+                setTimeout(() => {
+                    selectedCh.classList.remove('selected');
+                    selectedEn.classList.remove('selected');
+                }, 800);
+            }
+
+            selectedCh = null;
+            selectedEn = null;
+        }
+
+        function drawLine(fromElem, toElem) {
+            const canvas = document.getElementById('lineCanvas');
+            const ctx = canvas.getContext('2d');
+            const rect1 = fromElem.getBoundingClientRect();
+            const rect2 = toElem.getBoundingClientRect();
+            const containerRect = document.querySelector('.container').getBoundingClientRect();
+
+            const x1 = rect1.right - containerRect.left;
+            const y1 = rect1.top + rect1.height / 2 - containerRect.top;
+            const x2 = rect2.left - containerRect.left;
+            const y2 = rect2.top + rect2.height / 2 - containerRect.top;
+
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.strokeStyle = '#4CAF50';
+            ctx.lineWidth = 4;
+            ctx.stroke();
+
+            setTimeout(() => {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            }, 800);
+        }
+
+        function checkLevelComplete() {
+            const totalPairs = Math.min(LEVEL_SIZE, words.length - currentLevel * LEVEL_SIZE);
+            if (matches === totalPairs) {
+                currentLevel++;
+                if (currentLevel * LEVEL_SIZE >= words.length) {
+                    alert('🎉 恭喜你完成所有关卡！');
+                    return;
+                }
+                document.getElementById('currentLevel').textContent = currentLevel + 1;
+                initGame();
+            }
+        }
+
+        initGame();
+    </script>
 </body>
 </html>
